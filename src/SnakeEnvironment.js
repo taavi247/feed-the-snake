@@ -3,11 +3,11 @@ import React, { Component } from 'react';
 const environmentRows = 30;
 const environmentColumns = 30;
 
-const tickInterval = 200;
 var timerID = null;
 
 const CELLSTATE = {
     EMPTY: "empty",
+    WALL: "wall",
     APPLE: "apple",
     SCISSORS: "scissors",
     SNAKEHEAD: "snakehead",
@@ -76,90 +76,123 @@ class SnakeEnvironment extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            cells: Array(environmentRows * environmentColumns).fill(CELLSTATE.EMPTY),
+            cells: createEnvironment(),
             selectedItem: CELLSTATE.APPLE,
             snakeDirection: SNAKEDIRECTION.UP,
             snake: [],
+            gameover: false,
+            tickInterval: 200,
         };
         this.handleKeyPress = this.handleKeyPress.bind(this);
     }
 
-    handleKeyPress(e) {
-        let snakeDirection;
-        switch (e.code) {
-            case "ArrowUp":
-                snakeDirection = SNAKEDIRECTION.UP;
-                break;
-            case "ArrowDown":
-                snakeDirection = SNAKEDIRECTION.DOWN;
-                break;
-            case "ArrowLeft":
-                snakeDirection = SNAKEDIRECTION.LEFT;
-                break;
-            case "ArrowRight":
-                snakeDirection = SNAKEDIRECTION.RIGHT;
-                break;
-            default:
-                break;
-        }
-        this.setState({ snakeDirection: snakeDirection });
-    }
-
     componentDidMount() {
-        document.body.addEventListener("keydown", this.handleKeyPress);
-
         this.resetEnvironment();
     }
 
-    environmentTick() {
-        const snakeDirection = this.state.snakeDirection;
-        const snake = this.state.snake;
-        switch (snakeDirection) {
-            case SNAKEDIRECTION.UP:
-                snake.unshift(snake[0] - environmentColumns);
-                snake.pop();
+    componentWillUnmount() {
+        document.body.removeEventListener("keydown", this.handleKeyPress);
+
+        clearInterval(timerID);
+        timerID = null;
+    }
+
+    handleKeyPress(e) {
+        switch (e.code) {
+            case "ArrowUp":
+                this.setState({ snakeDirection: SNAKEDIRECTION.UP });
                 break;
-            case SNAKEDIRECTION.DOWN:
-                snake.unshift(snake[0] + environmentColumns);
-                snake.pop();
+            case "ArrowDown":
+                this.setState({ snakeDirection: SNAKEDIRECTION.DOWN });
                 break;
-            case SNAKEDIRECTION.LEFT:
-                snake.unshift(snake[0] - 1);
-                snake.pop();
+            case "ArrowLeft":
+                this.setState({ snakeDirection: SNAKEDIRECTION.LEFT });
                 break;
-            case SNAKEDIRECTION.RIGHT:
-                snake.unshift(snake[0] + 1);
-                snake.pop();
+            case "ArrowRight":
+                this.setState({ snakeDirection: SNAKEDIRECTION.RIGHT });
                 break;
             default:
                 break;
         }
+    }
+
+    environmentTick() {
+        if (this.state.gameover) {
+            clearInterval(timerID);
+            return;
+        }
+
+        const snakeDirection = this.state.snakeDirection;
+        const snake = this.state.snake;
+
+        switch (snakeDirection) {
+            case SNAKEDIRECTION.UP:
+                snake.unshift(snake[0] - environmentColumns);
+                break;
+            case SNAKEDIRECTION.DOWN:
+                snake.unshift(snake[0] + environmentColumns);
+                break;
+            case SNAKEDIRECTION.LEFT:
+                snake.unshift(snake[0] - 1);
+                break;
+            case SNAKEDIRECTION.RIGHT:
+                snake.unshift(snake[0] + 1);
+                break;
+            default:
+                break;
+        }
+
+        const snakeheadLocation = snake[0];
+        const cells = this.state.cells;
+
+        const snakebody = snake.slice(1);
+        if (snakebody.find(element => element === snakeheadLocation)
+            || this.state.cells[snakeheadLocation] === CELLSTATE.WALL
+            || snake.length < 1
+        ){
+                this.setState({ gameover: true });
+        }
+
+        if (this.state.cells[snakeheadLocation] === CELLSTATE.APPLE) {
+            cells[snakeheadLocation] = CELLSTATE.EMPTY;
+        }
+        else if (this.state.cells[snakeheadLocation] === CELLSTATE.SCISSORS) {
+            snake.pop();
+            snake.pop();
+            cells[snakeheadLocation] = CELLSTATE.EMPTY;
+        }
+        else {
+            snake.pop();
+        }
+
+        this.setState({ cells: cells });
         this.setState({ snake: snake });
+        
     }
 
     startEnvironment() {
+        document.body.addEventListener("keydown", this.handleKeyPress);
+
         if (!timerID) {
-            timerID = setInterval(() => { this.environmentTick(); }, tickInterval);
+            timerID = setInterval(() =>
+                { this.environmentTick(); }, this.state.tickInterval);
         }
     }
 
     resetEnvironment() {
+        document.body.removeEventListener("keydown", this.handleKeyPress);
+
         clearInterval(timerID);
         timerID = null;
 
-        const snake =
-        [
-            getGridCenter(),
-            getGridCenter() + environmentColumns,
-            getGridCenter() + 2 * environmentColumns
-        ];
+        const snake = createSnakeOfLength(6);
+
+        const cells = createEnvironment();
 
         this.setState({ snake: snake });
-
-        const cells =
-            Array(environmentRows * environmentColumns).fill(CELLSTATE.EMPTY);
-
-        this.setState({ cells: cells }); 
+        this.setState({ snakeDirection: SNAKEDIRECTION.UP });
+        this.setState({ cells: cells });
+        this.setState({ gameover: false });
     }
 
     handleClick(i) {
@@ -168,22 +201,19 @@ class SnakeEnvironment extends Component {
         this.setState({ cells: cells });
     }
 
-    switchApple() {
-        this.setState({ selectedItem: CELLSTATE.APPLE });
-    }
+    render() {
+        let gameoverMessage;
+        if (this.state.gameover) {
+            gameoverMessage = <h1>Snake is dead!</h1>
+        }
 
-    switchScissors() {
-        this.setState({ selectedItem: CELLSTATE.SCISSORS });
-    }
-
-    render() {   
         return (
             <html>
             <head>
                 <link rel="stylesheet" href="App.css"/>
             </head>
             <body>
-                    <h1>...</h1>
+                    <h1>Feed the Snake</h1>
                     <div className="EnvironmentGrid">
                         <EnvironmentGrid
                             state={this.state}
@@ -192,12 +222,12 @@ class SnakeEnvironment extends Component {
                     </div>
                     <button
                         type="button"
-                        onClick={() => this.switchApple()}>
+                        onClick={() => this.setState({ selectedItem: CELLSTATE.APPLE })}>
                         Apple
                     </button>
                     <button
                         type="button"
-                        onClick={() => this.switchScissors()}>
+                        onClick={() => this.setState({ selectedItem: CELLSTATE.SCISSORS })}>
                         Scissors
                     </button>
                     <button
@@ -210,6 +240,7 @@ class SnakeEnvironment extends Component {
                         onClick={() => this.startEnvironment()}>
                         Start
                     </button>
+                    { gameoverMessage }
             </body>
             </html>
         );
@@ -221,6 +252,31 @@ const getGridCenter = () => {
     return (
         Math.floor(middleRow * environmentColumns + (environmentColumns - 1) / 2)
     );
+}
+
+const createSnakeOfLength = (length) => {
+    let snake = [];
+    for (let i = 0; i < length; ++i) {
+        snake.push(getGridCenter() + i * environmentColumns);
+    }
+    console.log(snake);
+    return snake;
+}
+
+const createEnvironment = () => {
+    const GridSize = environmentRows * environmentColumns;
+    const cells =
+        Array(GridSize).fill(CELLSTATE.EMPTY);
+    for (let i = 0; i < GridSize; ++i) {
+        if (i < environmentColumns
+            || i > (GridSize - environmentColumns - 1)
+            || !(i % environmentColumns)
+            || !((i + 1) % environmentColumns)
+        ){
+                cells[i] = CELLSTATE.WALL;
+        }
+    }
+    return cells;
 }
 
 export default SnakeEnvironment;

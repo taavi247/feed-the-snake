@@ -54,6 +54,10 @@ div {
     background-color: black;
 }
 
+.wall {
+    background-color: slategray;
+}
+
 .apple {
     background-color: lightgoldenrodyellow;
 }
