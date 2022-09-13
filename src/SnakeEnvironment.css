@@ -43,7 +43,7 @@ div {
     flex-basis: 100%;
 }
 
-.square {
+.cell {
     background-color: black;
     height: 20px;
     width: 10px;
@@ -54,6 +54,18 @@ div {
     background-color: black;
 }
 
-.clicked {
+.apple {
+    background-color: lightgoldenrodyellow;
+}
+
+.scissors {
+    background-color: darkred;
+}
+
+.snakehead {
     background-color: greenyellow;
+}
+
+.snakebody {
+    background-color: green
 }
