@@ -49,10 +49,12 @@ class EnvironmentGrid extends Component {
                 cellrow.push(<div className="linebreak"></div>);
             }
 
+            const snakeheadLocation = this.props.state.snake[0];
+
             if (this.props.state.snake.find(element => element === index)) {
                 cellrow.push(
                     this.renderCell(
-                        this.props.state.snake[0] === index
+                        snakeheadLocation === index
                         ? CELLSTATE.SNAKEHEAD : CELLSTATE.SNAKEBODY, index
                     )
                 );
@@ -100,16 +102,24 @@ class SnakeEnvironment extends Component {
     handleKeyPress(e) {
         switch (e.code) {
             case "ArrowUp":
-                this.setState({ snakeDirection: SNAKEDIRECTION.UP });
+                if (this.state.snakeDirection !== SNAKEDIRECTION.DOWN) {
+                    this.setState({ snakeDirection: SNAKEDIRECTION.UP });
+                }
                 break;
             case "ArrowDown":
-                this.setState({ snakeDirection: SNAKEDIRECTION.DOWN });
+                if (this.state.snakeDirection !== SNAKEDIRECTION.UP) {
+                    this.setState({ snakeDirection: SNAKEDIRECTION.DOWN });
+                }
                 break;
             case "ArrowLeft":
-                this.setState({ snakeDirection: SNAKEDIRECTION.LEFT });
+                if (this.state.snakeDirection !== SNAKEDIRECTION.RIGHT) {
+                    this.setState({ snakeDirection: SNAKEDIRECTION.LEFT });
+                }
                 break;
             case "ArrowRight":
-                this.setState({ snakeDirection: SNAKEDIRECTION.RIGHT });
+                if (this.state.snakeDirection !== SNAKEDIRECTION.LEFT) {
+                    this.setState({ snakeDirection: SNAKEDIRECTION.RIGHT });
+                }
                 break;
             default:
                 break;
@@ -124,34 +134,28 @@ class SnakeEnvironment extends Component {
 
         const snakeDirection = this.state.snakeDirection;
         const snake = this.state.snake;
+        let snakeheadLocation = snake[0];
 
         switch (snakeDirection) {
             case SNAKEDIRECTION.UP:
-                snake.unshift(snake[0] - environmentColumns);
+                snake.unshift(snakeheadLocation - environmentColumns);
                 break;
             case SNAKEDIRECTION.DOWN:
-                snake.unshift(snake[0] + environmentColumns);
+                snake.unshift(snakeheadLocation + environmentColumns);
                 break;
             case SNAKEDIRECTION.LEFT:
-                snake.unshift(snake[0] - 1);
+                snake.unshift(snakeheadLocation - 1);
                 break;
             case SNAKEDIRECTION.RIGHT:
-                snake.unshift(snake[0] + 1);
+                snake.unshift(snakeheadLocation + 1);
                 break;
             default:
                 break;
         }
 
-        const snakeheadLocation = snake[0];
-        const cells = this.state.cells;
+        snakeheadLocation = snake[0];
 
-        const snakebody = snake.slice(1);
-        if (snakebody.find(element => element === snakeheadLocation)
-            || this.state.cells[snakeheadLocation] === CELLSTATE.WALL
-            || snake.length < 1
-        ){
-                this.setState({ gameover: true });
-        }
+        const cells = this.state.cells;
 
         if (this.state.cells[snakeheadLocation] === CELLSTATE.APPLE) {
             cells[snakeheadLocation] = CELLSTATE.EMPTY;
@@ -163,6 +167,14 @@ class SnakeEnvironment extends Component {
         }
         else {
             snake.pop();
+        }
+
+        const snakebody = snake.slice(1);
+        if (snakebody.find(element => element === snakeheadLocation)
+            || this.state.cells[snakeheadLocation] === CELLSTATE.WALL
+            || snake.length < 1
+        ) {
+            this.setState({ gameover: true });
         }
 
         this.setState({ cells: cells });
@@ -268,10 +280,8 @@ const createEnvironment = () => {
     const cells =
         Array(GridSize).fill(CELLSTATE.EMPTY);
     for (let i = 0; i < GridSize; ++i) {
-        if (i < environmentColumns
-            || i > (GridSize - environmentColumns - 1)
-            || !(i % environmentColumns)
-            || !((i + 1) % environmentColumns)
+        if (i < environmentColumns || i > (GridSize - environmentColumns - 1)
+            || !(i % environmentColumns) || !((i + 1) % environmentColumns)
         ){
                 cells[i] = CELLSTATE.WALL;
         }
