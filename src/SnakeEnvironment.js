@@ -24,6 +24,7 @@ const SNAKEDIRECTION = {
 function Cell(props) {
     return (
         <div
+            key={"c" + props.index}
             className={"cell " + props.cellstate}
             onClick={props.onClick}
         />
@@ -34,6 +35,7 @@ class EnvironmentGrid extends Component {
     renderCell(cell, index) {
         return (
             <Cell
+                index={index}
                 cellstate={cell}
                 onClick={() => this.props.onClick(index)}
             />
@@ -178,14 +180,41 @@ class SnakeEnvironment extends Component {
         }
 
         this.setState({ cells: cells });
-        this.setState({ snake: snake });
-        
+        this.setState({ snake: snake });  
+    }
+
+    createSnakeItemJSON(snake, items) {
+        var i = items.indexOf(CELLSTATE.APPLE);
+        var apples = [];
+        while (i !== -1) {
+            apples.push(i);
+            i = items.indexOf(CELLSTATE.APPLE, i + 1);
+        }
+
+        var scissors = [];
+        i = items.indexOf(CELLSTATE.SCISSORS);
+        while (i !== -1) {
+            scissors.push(i);
+            i = items.indexOf(CELLSTATE.SCISSORS, i + 1);
+        }
+
+        var snakeHead = snake[0];
+        var snakeBody = snake.slice(1);
+
+        return JSON.stringify({snakeHead, snakeBody, apples, scissors});
     }
 
     startEnvironment() {
         document.body.addEventListener("keydown", this.handleKeyPress);
 
         if (!timerID) {
+            const json = this.createSnakeItemJSON(
+                this.state.snake,
+                this.state.cells
+            );
+
+            postJSON(json);
+
             timerID = setInterval(() =>
                 { this.environmentTick(); }, this.state.tickInterval);
         }
@@ -271,7 +300,6 @@ const createSnakeOfLength = (length) => {
     for (let i = 0; i < length; ++i) {
         snake.push(getGridCenter() + i * environmentColumns);
     }
-    console.log(snake);
     return snake;
 }
 
@@ -287,6 +315,17 @@ const createEnvironment = () => {
         }
     }
     return cells;
+}
+
+const postJSON = (json) => {
+    const headers = { "Content-Type": "application/json" };
+
+    fetch("http://127.0.0.1:8000/api/movesnake", {
+        referrer: "no-referrer-when-downgrade",
+        method: "POST",
+        headers: headers,
+        body: json
+    });
 }
 
 export default SnakeEnvironment;
