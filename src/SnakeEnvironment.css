@@ -71,5 +71,21 @@ div {
 }
 
 .snakebody {
-    background-color: green
+    background-color: green;
+}
+
+.button {
+    background-color: lightgray;
+}
+
+.button:active {
+    background-color: lightyellow;
+}
+
+.button_snakebrain {
+    background-color: lightgreen;
+}
+
+.brainoff {
+    background-color: red;
 }
