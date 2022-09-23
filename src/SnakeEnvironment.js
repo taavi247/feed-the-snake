@@ -93,7 +93,8 @@ class SnakeEnvironment extends Component {
             tickInterval: 200,
             gameID: 0,
             orderID: 0,
-            snakeBrainControl: true,
+            snakeBrainControl: false,
+            generated: false,
         };
         this.handleKeyPress = this.handleKeyPress.bind(this);
     }
@@ -107,6 +108,8 @@ class SnakeEnvironment extends Component {
 
     componentWillUnmount() {
         document.body.removeEventListener("keydown", this.handleKeyPress);
+
+        document.getElementById("button_selectapples").classList.add("buttonon");
 
         clearInterval(timerID);
         timerID = null;
@@ -182,16 +185,16 @@ class SnakeEnvironment extends Component {
                 let snakeBrainDirection = result.snakeDirection;
 
                 if (this.state.snakeBrainControl) {
-                    if (snakeBrainDirection == "ArrowUp") {
+                    if (snakeBrainDirection === "ArrowUp") {
                         this.setState({ snakeDirection: SNAKEDIRECTION.UP });
                     }
-                    else if (snakeBrainDirection == "ArrowDown") {
+                    else if (snakeBrainDirection === "ArrowDown") {
                         this.setState({ snakeDirection: SNAKEDIRECTION.DOWN });
                     }
-                    else if (snakeBrainDirection == "ArrowLeft") {
+                    else if (snakeBrainDirection === "ArrowLeft") {
                         this.setState({ snakeDirection: SNAKEDIRECTION.LEFT });
                     }
-                    else if (snakeBrainDirection == "ArrowRight") {
+                    else if (snakeBrainDirection === "ArrowRight") {
                         this.setState({ snakeDirection: SNAKEDIRECTION.RIGHT });
                     }
                 }
@@ -296,20 +299,93 @@ class SnakeEnvironment extends Component {
         if (this.state.snakeBrainControl) {
             this.setState({ snakeBrainControl: false });
             let button = document.getElementById("button_snakebrain");
-            button.classList.add("brainoff");
+            button.classList.remove("buttonon");
         }
         else {
             this.setState({ snakeBrainControl: true });
             let button = document.getElementById("button_snakebrain");
-            button.classList.remove("brainoff");
+            button.classList.add("buttonon");
+        }
+    }
+
+    generateItems() {
+        var cells = createEnvironment();
+
+        let nApples = document.getElementById("input_apples").value;
+        let nScissors = document.getElementById("input_scissors").value;
+
+        let i = 0;
+        while (i < nApples) {
+            let randomCell = Math.floor(
+                Math.random() * environmentColumns * environmentRows);
+            if (this.checkIfCellEmpty(randomCell)) {
+                cells[randomCell] = CELLSTATE.APPLE;
+                this.setState({ cells: cells });
+                ++i;
+            }
+        }
+        i = 0;
+        while (i < nScissors) {
+            let randomCell = Math.floor(
+                Math.random() * environmentColumns * environmentRows);
+            if (this.checkIfCellEmpty(randomCell)) {
+                cells[randomCell] = CELLSTATE.SCISSORS;
+                this.setState({ cells: cells });
+                ++i;
+            }
+        }
+    }
+
+    checkIfCellEmpty(i) {
+        if (this.state.cells[i] === CELLSTATE.EMPTY &&
+            !this.state.snake.find(element => element === i)) {
+                return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    checkIfCellHasItem(i) {
+        if (this.state.cells[i] === CELLSTATE.APPLE ||
+            this.state.cells[i] === CELLSTATE.SCISSORS) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    selectItem(selectedItem) {
+        const buttonApples = document.getElementById("button_selectapples");
+        const buttonScissors = document.getElementById("button_selectscissors");
+        const buttonEraser = document.getElementById("button_selecteraser");
+
+        if (selectedItem === CELLSTATE.APPLE) {
+            this.setState({ selectedItem: CELLSTATE.APPLE });
+            buttonApples.classList.add("buttonon");
+            buttonScissors.classList.remove("buttonon");
+            buttonEraser.classList.remove("buttonon");
+        }
+        else if (selectedItem === CELLSTATE.SCISSORS) {
+            this.setState({ selectedItem: CELLSTATE.SCISSORS })
+            buttonApples.classList.remove("buttonon");
+            buttonScissors.classList.add("buttonon");
+            buttonEraser.classList.remove("buttonon");
+        }
+        else if (selectedItem === CELLSTATE.EMPTY) {
+            this.setState({ selectedItem: CELLSTATE.EMPTY })
+            buttonApples.classList.remove("buttonon");
+            buttonScissors.classList.remove("buttonon");
+            buttonEraser.classList.add("buttonon");
         }
     }
 
     // Lets user to place previously selected items on the grid
+    // Or use eraser to remove items
     handleClick(i) {
         if (mouseDown) {
-            if (this.state.cells[i] !== CELLSTATE.WALL &&
-                !this.state.snake.find(element => element === i)) {
+            if (this.checkIfCellEmpty(i) || this.checkIfCellHasItem(i)) {
                     const cells = this.state.cells;
                     cells[i] = this.state.selectedItem;
                     this.setState({ cells: cells });
@@ -337,31 +413,66 @@ class SnakeEnvironment extends Component {
                         />
                     </div>
                     <button
+                        id="button_selectapples"
                         className="button"
-                        onClick={() => this.setState({ selectedItem: CELLSTATE.APPLE })}>
+                        onClick={() => this.selectItem(CELLSTATE.APPLE)}>
                         Apple
                     </button>
                     <button
+                        id="button_selectscissors"
                         className="button"
-                        onClick={() => this.setState({ selectedItem: CELLSTATE.SCISSORS })}>
+                        onClick={() => this.selectItem(CELLSTATE.SCISSORS)}>
                         Scissors
                     </button>
                     <button
+                        id="button_selecteraser"
+                        className="button"
+                        onClick={() => this.selectItem(CELLSTATE.EMPTY)}>
+                        Eraser
+                    </button>
+                    <button
+                        id="button_reset"
                         className="button"
                         onClick={() => this.resetEnvironment()}>
                         Reset
                     </button>
                     <button
+                        id="button_start"
                         className="button"
                         onClick={() => this.startEnvironment()}>
                         Start
                     </button>
                     <button
                         id="button_snakebrain"
-                        className="button_snakebrain"
+                        className="button"
                         onClick={() => this.toggleSnakeBrain()}>
                         Snake Brain
                     </button>
+
+                    <p>Item generator</p>
+                    <label for="appleinput">Apples</label>
+                    <input
+                        id="input_apples"
+                        type="range"
+                        name="appleinput"
+                        min="0"
+                        max={Math.floor((environmentColumns * environmentRows) / 3)}>
+                    </input>
+                    <label for="scissorinput">Scissors</label>
+                    <input
+                        id="input_scissors"
+                        type="range"
+                        name="scissorinput"
+                        min="0"
+                        max={Math.floor((environmentColumns * environmentRows) / 3)}>
+                    </input>
+                    <button
+                        id="button_generate"
+                        className="button_generate"
+                        onClick={() => this.generateItems()}>
+                        Generate
+                    </button>
+
                     { gameoverMessage }
             </body>
             </html>

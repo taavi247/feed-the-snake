@@ -82,10 +82,6 @@ div {
     background-color: lightyellow;
 }
 
-.button_snakebrain {
-    background-color: lightgreen;
-}
-
-.brainoff {
-    background-color: red;
+.buttonon {
+    background-color: green;
 }
