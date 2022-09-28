@@ -95,6 +95,7 @@ class SnakeEnvironment extends Component {
             orderID: 0,
             snakeBrainControl: false,
             generated: false,
+            currentScore: 0,
         };
         this.handleKeyPress = this.handleKeyPress.bind(this);
     }
@@ -164,10 +165,12 @@ class SnakeEnvironment extends Component {
 
         const gameID = this.state.gameID;
         const orderID = this.state.orderID;
+        const score = this.state.currentScore;
 
         return JSON.stringify({
             gameID, orderID, snakeHead,
-            snakeBody, apples, scissors
+            snakeBody, apples, scissors,
+            score
         });
     }
 
@@ -235,6 +238,9 @@ class SnakeEnvironment extends Component {
         // If the snake eats an apple just clear the apple from the cell
         if (this.state.cells[snakeheadLocation] === CELLSTATE.APPLE) {
             cells[snakeheadLocation] = CELLSTATE.EMPTY;
+
+            let currentScore = this.state.currentScore + 1;
+            this.setState({ currentScore: currentScore });
         }
 
         // If the snake runs into a scissor remove one extra element from
@@ -243,6 +249,11 @@ class SnakeEnvironment extends Component {
             snake.pop();
             snake.pop();
             cells[snakeheadLocation] = CELLSTATE.EMPTY;
+
+            if (this.state.currentScore > 0) {
+                let currentScore = this.state.currentScore - 1;
+                this.setState({ currentScore: currentScore });
+            }
         }
 
         // Otherwise just remove one element from the body array to make 
@@ -253,7 +264,8 @@ class SnakeEnvironment extends Component {
 
         const snakebody = snake.slice(1);
 
-        // The snake dies if runs into a wall or on too many scissors
+        // The snake dies if it runs into its own body or a wall 
+        // or on too many scissors
         if (snakebody.find(element => element === snakeheadLocation)
             || this.state.cells[snakeheadLocation] === CELLSTATE.WALL
             || snake.length < 2
@@ -282,6 +294,8 @@ class SnakeEnvironment extends Component {
 
         clearInterval(timerID);
         timerID = null;
+
+        this.setState({ currentScore: 0 });
 
         const snake = createSnakeOfLength(6);
 
@@ -381,6 +395,10 @@ class SnakeEnvironment extends Component {
         }
     }
 
+    calculateScore() {
+
+    }
+
     // Lets user to place previously selected items on the grid
     // Or use eraser to remove items
     handleClick(i) {
@@ -406,6 +424,7 @@ class SnakeEnvironment extends Component {
             </head>
             <body>
                     <h1>Feed the Snake</h1>
+                    <p>Score: {this.state.currentScore}</p>
                     <div className="EnvironmentGrid">
                         <EnvironmentGrid
                             state={this.state}
