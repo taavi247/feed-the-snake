@@ -9,6 +9,9 @@ var timerID = null;
 
 var mouseDown = false;
 
+const apiURL = "http://127.0.0.1:8000/api/movesnake";
+
+
 const CELLSTATE = {
     EMPTY: "empty",
     WALL: "wall",
@@ -89,7 +92,7 @@ class SnakeEnvironment extends Component {
             selectedItem: CELLSTATE.APPLE,
             snakeDirection: SNAKEDIRECTION.UP,
             snake: [],
-            gameover: false,
+            snakeDead: false,
             tickInterval: 200,
             gameID: 0,
             orderID: 0,
@@ -116,8 +119,55 @@ class SnakeEnvironment extends Component {
         timerID = null;
     }
 
-    handleKeyPress(e) {
-        switch (e.code) {
+    environmentTick() {
+        // Updates current state to the server
+        // And receives snake control
+        this.getSnakeControlFromServer();
+
+        // Stop here if previous tick killed the snake
+        if (this.state.snakeDead) {
+            clearInterval(timerID);
+            return;
+        }
+
+        // Advances the snake by one cell and updates the score
+        this.moveSnake();
+
+        this.checkIfSnakeDead();
+
+        const newOrderID = this.state.orderID + 1;
+        this.setState({ orderID: newOrderID });
+    }
+
+    getSnakeControlFromServer() {
+        // Creates a JSON including unique game ID, turn and
+        // location of snake and items
+        const json = this.createSnakeItemJSON(
+            this.state.snake,
+            this.state.cells
+        );
+
+        const options = {
+            referrer: "no-referrer-when-downgrade",
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: json
+        };
+
+        fetch(apiURL, options)
+            .then(response => response.json())
+            .then(result => {
+                if (this.state.snakeBrainControl) {
+                    this.setSnakeDirection(result.snakeDirection)
+                }
+            })
+            .catch(error => {
+                console.error("Fetch API error: ", error);
+            });
+    }
+
+    setSnakeDirection(snakeDirection) {
+        switch (snakeDirection) {
             case "ArrowUp":
                 if (this.state.snakeDirection !== SNAKEDIRECTION.DOWN) {
                     this.setState({ snakeDirection: SNAKEDIRECTION.UP });
@@ -143,8 +193,6 @@ class SnakeEnvironment extends Component {
         }
     }
 
-    // Creates a JSON including unique game ID, turn and
-    // location of snake and items
     createSnakeItemJSON(snake, items) {
         var i = items.indexOf(CELLSTATE.APPLE);
         var apples = [];
@@ -167,6 +215,7 @@ class SnakeEnvironment extends Component {
         const orderID = this.state.orderID;
         const score = this.state.currentScore;
 
+        // Add data you wish to send to the backend here
         return JSON.stringify({
             gameID, orderID, snakeHead,
             snakeBody, apples, scissors,
@@ -174,40 +223,7 @@ class SnakeEnvironment extends Component {
         });
     }
 
-    environmentTick() {
-        const json = this.createSnakeItemJSON(
-            this.state.snake,
-            this.state.cells
-        );
-
-        // Sends the JSON using the Fetch API to Django server
-        // And receives snake controlling JSON
-        postJSON(json)
-            .then((response) => response.json())
-            .then((result) => {
-                let snakeBrainDirection = result.snakeDirection;
-
-                if (this.state.snakeBrainControl) {
-                    if (snakeBrainDirection === "ArrowUp") {
-                        this.setState({ snakeDirection: SNAKEDIRECTION.UP });
-                    }
-                    else if (snakeBrainDirection === "ArrowDown") {
-                        this.setState({ snakeDirection: SNAKEDIRECTION.DOWN });
-                    }
-                    else if (snakeBrainDirection === "ArrowLeft") {
-                        this.setState({ snakeDirection: SNAKEDIRECTION.LEFT });
-                    }
-                    else if (snakeBrainDirection === "ArrowRight") {
-                        this.setState({ snakeDirection: SNAKEDIRECTION.RIGHT });
-                    }
-                }
-            });
-        
-        if (this.state.gameover) {
-            clearInterval(timerID);
-            return;
-        }
-
+    moveSnake() {
         const snakeDirection = this.state.snakeDirection;
         const snake = this.state.snake;
         let snakeheadLocation = snake[0];
@@ -262,22 +278,26 @@ class SnakeEnvironment extends Component {
             snake.pop();
         }
 
-        const snakebody = snake.slice(1);
+        this.setState({ cells: cells });
+        this.setState({ snake: snake });
+    }
+
+    checkIfSnakeDead() {
+        const snakebody = this.state.snake.slice(1);
+        const snakeHeadLocation = this.state.snake[0];
 
         // The snake dies if it runs into its own body or a wall 
         // or on too many scissors
-        if (snakebody.find(element => element === snakeheadLocation)
-            || this.state.cells[snakeheadLocation] === CELLSTATE.WALL
-            || snake.length < 2
+        if (snakebody.find(element => element === snakeHeadLocation)
+            || this.state.cells[snakeHeadLocation] === CELLSTATE.WALL
+            || snakebody.length < 1
         ) {
-            this.setState({ gameover: true });
+            this.setState({ snakeDead: true });
         }
+    }
 
-        this.setState({ cells: cells });
-        this.setState({ snake: snake });
-
-        const newOrderID = this.state.orderID + 1;
-        this.setState({ orderID: newOrderID});
+    handleKeyPress(e) {
+        this.setSnakeDirection(e.code);
     }
 
     startEnvironment() {
@@ -301,12 +321,14 @@ class SnakeEnvironment extends Component {
 
         const cells = createEnvironment();
 
+        // Django database uses only positive (16-bit) integers
         this.setState({ gameID: Math.floor(Math.random() * maxRandomNumber) });
+
         this.setState({ orderID: 0 });
         this.setState({ snake: snake });
         this.setState({ snakeDirection: SNAKEDIRECTION.UP });
         this.setState({ cells: cells });
-        this.setState({ gameover: false });
+        this.setState({ snakeDead: false });
     }
 
     toggleSnakeBrain() {
@@ -395,13 +417,9 @@ class SnakeEnvironment extends Component {
         }
     }
 
-    calculateScore() {
-
-    }
-
     // Lets user to place previously selected items on the grid
     // Or use eraser to remove items
-    handleClick(i) {
+    handleMouseOver(i) {
         if (mouseDown) {
             if (this.checkIfCellEmpty(i) || this.checkIfCellHasItem(i)) {
                     const cells = this.state.cells;
@@ -412,9 +430,9 @@ class SnakeEnvironment extends Component {
     }
 
     render() {
-        let gameoverMessage;
-        if (this.state.gameover) {
-            gameoverMessage = <h1>Snake is dead!</h1>
+        let snakeDeadMessage;
+        if (this.state.snakeDead) {
+            snakeDeadMessage = <h1>Snake is dead!</h1>
         }
 
         return (
@@ -428,7 +446,7 @@ class SnakeEnvironment extends Component {
                     <div className="EnvironmentGrid">
                         <EnvironmentGrid
                             state={this.state}
-                            onMouseOver={(i) => this.handleClick(i)}
+                            onMouseOver={(i) => this.handleMouseOver(i)}
                         />
                     </div>
                     <button
@@ -492,7 +510,7 @@ class SnakeEnvironment extends Component {
                         Generate
                     </button>
 
-                    { gameoverMessage }
+                    { snakeDeadMessage }
             </body>
             </html>
         );
@@ -527,17 +545,6 @@ const createEnvironment = () => {
         }
     }
     return cells;
-}
-
-const postJSON = (json) => {
-    const headers = { "Content-Type": "application/json" };
-
-    return fetch("http://127.0.0.1:8000/api/movesnake", {
-        referrer: "no-referrer-when-downgrade",
-        method: "POST",
-        headers: headers,
-        body: json
-    });
 }
 
 export default SnakeEnvironment;
