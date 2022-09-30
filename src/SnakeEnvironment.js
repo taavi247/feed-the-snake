@@ -1,38 +1,32 @@
 import React, { Component } from 'react';
 
-const environmentRows = 30;
-const environmentColumns = 30;
+const ENVIRONMENT_ROWS = 30;
+const ENVIRONMENT_COLUMNS = 30;
 
-const maxRandomNumber = (Math.pow(2, 32) / 2) - 1;
+const API_URL = 'http://127.0.0.1:8000/api/movesnake';
 
-var timerID = null;
-
-var mouseDown = false;
-
-const apiURL = "http://127.0.0.1:8000/api/movesnake";
-
-
-const CELLSTATE = {
-    EMPTY: "empty",
-    WALL: "wall",
-    APPLE: "apple",
-    SCISSORS: "scissors",
-    SNAKEHEAD: "snakehead",
-    SNAKEBODY: "snakebody"
+const CellState = {
+    EMPTY: 'empty',
+    WALL: 'wall',
+    APPLE: 'apple',
+    SCISSORS: 'scissors',
+    SNAKEHEAD: 'snakehead',
+    SNAKEBODY: 'snakebody'
 };
 
-const SNAKEDIRECTION = {
-    UP: "up",
-    DOWN: "down",
-    LEFT: "left",
-    RIGHT: "right",
+const SnakeDirection = {
+    UP: 'up',
+    DOWN: 'down',
+    LEFT: 'left',
+    RIGHT: 'right',
 }
+
 
 function Cell(props) {
     return (
         <div
-            key={"c" + props.index}
-            className={"cell " + props.cellstate}
+            key={'c' + props.index}
+            className={'cell ' + props.cellstate}
             onMouseOver={props.onMouseOver}
         />
     );
@@ -55,8 +49,8 @@ class EnvironmentGrid extends Component {
             let cellrow = [];
 
             // Adding a line break here to change rows in flexbox
-            if (!(index % environmentColumns)) {
-                cellrow.push(<div className="linebreak"></div>);
+            if (!(index % ENVIRONMENT_COLUMNS)) {
+                cellrow.push(<div className='linebreak'></div>);
             }
 
             const snakeheadLocation = this.props.state.snake[0];
@@ -65,7 +59,7 @@ class EnvironmentGrid extends Component {
                 cellrow.push(
                     this.renderCell(
                         snakeheadLocation === index
-                        ? CELLSTATE.SNAKEHEAD : CELLSTATE.SNAKEBODY, index
+                        ? CellState.SNAKEHEAD : CellState.SNAKEBODY, index
                     )
                 );
             }
@@ -77,7 +71,7 @@ class EnvironmentGrid extends Component {
         });
 
         return (
-            <div className="container">
+            <div className='container'>
                 { Grid }
             </div>
         );
@@ -89,34 +83,36 @@ class SnakeEnvironment extends Component {
         super(props);
         this.state = {
             cells: createEnvironment(),
-            selectedItem: CELLSTATE.APPLE,
-            snakeDirection: SNAKEDIRECTION.UP,
+            selectedItem: CellState.APPLE,
+            snakeDirection: SnakeDirection.UP,
             snake: [],
             snakeDead: false,
             tickInterval: 200,
-            gameID: 0,
-            orderID: 0,
+            gameId: 0,
+            orderId: 0,
             snakeBrainControl: false,
             generated: false,
             currentScore: 0,
         };
         this.handleKeyPress = this.handleKeyPress.bind(this);
+        this.timerId = null;
+        this.mouseDown = false;
     }
 
     componentDidMount() {
         this.resetEnvironment();
 
-        document.body.onmousedown = () => (mouseDown = true);
-        document.body.onmouseup = () => (mouseDown = false);
+        document.body.onmousedown = () => (this.mouseDown = true);
+        document.body.onmouseup = () => (this.mouseDown = false);
     }
 
     componentWillUnmount() {
-        document.body.removeEventListener("keydown", this.handleKeyPress);
+        document.body.removeEventListener('keydown', this.handleKeyPress);
 
-        document.getElementById("button_selectapples").classList.add("buttonon");
+        document.getElementById('button_selectapples').classList.add('buttonon');
 
-        clearInterval(timerID);
-        timerID = null;
+        clearInterval(this.timerId);
+        this.timerId = null;
     }
 
     environmentTick() {
@@ -126,7 +122,7 @@ class SnakeEnvironment extends Component {
 
         // Stop here if previous tick killed the snake
         if (this.state.snakeDead) {
-            clearInterval(timerID);
+            clearInterval(this.timerId);
             return;
         }
 
@@ -135,12 +131,12 @@ class SnakeEnvironment extends Component {
 
         this.checkIfSnakeDead();
 
-        const newOrderID = this.state.orderID + 1;
-        this.setState({ orderID: newOrderID });
+        const newOrderId = this.state.orderId + 1;
+        this.setState({ orderId: newOrderId });
     }
 
     getSnakeControlFromServer() {
-        // Creates a JSON including unique game ID, turn and
+        // Creates a JSON including unique game Id, turn and
         // location of snake and items
         const json = this.createSnakeItemJSON(
             this.state.snake,
@@ -148,76 +144,56 @@ class SnakeEnvironment extends Component {
         );
 
         const options = {
-            referrer: "no-referrer-when-downgrade",
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            referrer: 'no-referrer-when-downgrade',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: json
         };
 
-        fetch(apiURL, options)
-            .then(response => response.json())
+        fetch(API_URL, options)
+            .then(response => {
+                if (response.headers.get('content-type') === 'application/json') {
+                    return response.json();
+                }
+                else {
+                    console.log('Response was not in JSON format');
+                }
+            })
             .then(result => {
                 if (this.state.snakeBrainControl) {
                     this.setSnakeDirection(result.snakeDirection)
                 }
             })
             .catch(error => {
-                console.error("Fetch API error: ", error);
+                console.error('Fetch API error: ', error);
             });
     }
 
-    setSnakeDirection(snakeDirection) {
-        switch (snakeDirection) {
-            case "ArrowUp":
-                if (this.state.snakeDirection !== SNAKEDIRECTION.DOWN) {
-                    this.setState({ snakeDirection: SNAKEDIRECTION.UP });
-                }
-                break;
-            case "ArrowDown":
-                if (this.state.snakeDirection !== SNAKEDIRECTION.UP) {
-                    this.setState({ snakeDirection: SNAKEDIRECTION.DOWN });
-                }
-                break;
-            case "ArrowLeft":
-                if (this.state.snakeDirection !== SNAKEDIRECTION.RIGHT) {
-                    this.setState({ snakeDirection: SNAKEDIRECTION.LEFT });
-                }
-                break;
-            case "ArrowRight":
-                if (this.state.snakeDirection !== SNAKEDIRECTION.LEFT) {
-                    this.setState({ snakeDirection: SNAKEDIRECTION.RIGHT });
-                }
-                break;
-            default:
-                break;
-        }
-    }
-
     createSnakeItemJSON(snake, items) {
-        var i = items.indexOf(CELLSTATE.APPLE);
+        var i = items.indexOf(CellState.APPLE);
         var apples = [];
         while (i !== -1) {
             apples.push(i);
-            i = items.indexOf(CELLSTATE.APPLE, i + 1);
+            i = items.indexOf(CellState.APPLE, i + 1);
         }
 
         var scissors = [];
-        i = items.indexOf(CELLSTATE.SCISSORS);
+        i = items.indexOf(CellState.SCISSORS);
         while (i !== -1) {
             scissors.push(i);
-            i = items.indexOf(CELLSTATE.SCISSORS, i + 1);
+            i = items.indexOf(CellState.SCISSORS, i + 1);
         }
 
         var snakeHead = snake[0];
         var snakeBody = snake.slice(1);
 
-        const gameID = this.state.gameID;
-        const orderID = this.state.orderID;
+        const gameId = this.state.gameId;
+        const orderId = this.state.orderId;
         const score = this.state.currentScore;
 
         // Add data you wish to send to the backend here
         return JSON.stringify({
-            gameID, orderID, snakeHead,
+            gameId, orderId, snakeHead,
             snakeBody, apples, scissors,
             score
         });
@@ -231,16 +207,16 @@ class SnakeEnvironment extends Component {
         // Adds a new head cell in beginning of the array
         // depending on control direction
         switch (snakeDirection) {
-            case SNAKEDIRECTION.UP:
-                snake.unshift(snakeheadLocation - environmentColumns);
+            case SnakeDirection.UP:
+                snake.unshift(snakeheadLocation - ENVIRONMENT_COLUMNS);
                 break;
-            case SNAKEDIRECTION.DOWN:
-                snake.unshift(snakeheadLocation + environmentColumns);
+            case SnakeDirection.DOWN:
+                snake.unshift(snakeheadLocation + ENVIRONMENT_COLUMNS);
                 break;
-            case SNAKEDIRECTION.LEFT:
+            case SnakeDirection.LEFT:
                 snake.unshift(snakeheadLocation - 1);
                 break;
-            case SNAKEDIRECTION.RIGHT:
+            case SnakeDirection.RIGHT:
                 snake.unshift(snakeheadLocation + 1);
                 break;
             default:
@@ -252,8 +228,8 @@ class SnakeEnvironment extends Component {
         const cells = this.state.cells;
 
         // If the snake eats an apple just clear the apple from the cell
-        if (this.state.cells[snakeheadLocation] === CELLSTATE.APPLE) {
-            cells[snakeheadLocation] = CELLSTATE.EMPTY;
+        if (this.state.cells[snakeheadLocation] === CellState.APPLE) {
+            cells[snakeheadLocation] = CellState.EMPTY;
 
             let currentScore = this.state.currentScore + 1;
             this.setState({ currentScore: currentScore });
@@ -261,10 +237,10 @@ class SnakeEnvironment extends Component {
 
         // If the snake runs into a scissor remove one extra element from
         // the body array to shorten the snake
-        else if (this.state.cells[snakeheadLocation] === CELLSTATE.SCISSORS) {
+        else if (this.state.cells[snakeheadLocation] === CellState.SCISSORS) {
             snake.pop();
             snake.pop();
-            cells[snakeheadLocation] = CELLSTATE.EMPTY;
+            cells[snakeheadLocation] = CellState.EMPTY;
 
             if (this.state.currentScore > 0) {
                 let currentScore = this.state.currentScore - 1;
@@ -289,7 +265,7 @@ class SnakeEnvironment extends Component {
         // The snake dies if it runs into its own body or a wall 
         // or on too many scissors
         if (snakebody.find(element => element === snakeHeadLocation)
-            || this.state.cells[snakeHeadLocation] === CELLSTATE.WALL
+            || this.state.cells[snakeHeadLocation] === CellState.WALL
             || snakebody.length < 1
         ) {
             this.setState({ snakeDead: true });
@@ -300,20 +276,47 @@ class SnakeEnvironment extends Component {
         this.setSnakeDirection(e.code);
     }
 
-    startEnvironment() {
-        document.body.addEventListener("keydown", this.handleKeyPress);
+    setSnakeDirection(snakeDirection) {
+        switch (snakeDirection) {
+            case 'ArrowUp':
+                if (this.state.snakeDirection !== SnakeDirection.DOWN) {
+                    this.setState({ snakeDirection: SnakeDirection.UP });
+                }
+                break;
+            case 'ArrowDown':
+                if (this.state.snakeDirection !== SnakeDirection.UP) {
+                    this.setState({ snakeDirection: SnakeDirection.DOWN });
+                }
+                break;
+            case 'ArrowLeft':
+                if (this.state.snakeDirection !== SnakeDirection.RIGHT) {
+                    this.setState({ snakeDirection: SnakeDirection.LEFT });
+                }
+                break;
+            case 'ArrowRight':
+                if (this.state.snakeDirection !== SnakeDirection.LEFT) {
+                    this.setState({ snakeDirection: SnakeDirection.RIGHT });
+                }
+                break;
+            default:
+                break;
+        }
+    }
 
-        if (!timerID) {
-            timerID = setInterval(() =>
+    startEnvironment() {
+        document.body.addEventListener('keydown', this.handleKeyPress);
+
+        if (!this.timerId) {
+            this.timerId = setInterval(() =>
                 { this.environmentTick(); }, this.state.tickInterval);
         }
     }
 
     resetEnvironment() {
-        document.body.removeEventListener("keydown", this.handleKeyPress);
+        document.body.removeEventListener('keydown', this.handleKeyPress);
 
-        clearInterval(timerID);
-        timerID = null;
+        clearInterval(this.timerId);
+        this.timerId = null;
 
         this.setState({ currentScore: 0 });
 
@@ -322,11 +325,12 @@ class SnakeEnvironment extends Component {
         const cells = createEnvironment();
 
         // Django database uses only positive (16-bit) integers
-        this.setState({ gameID: Math.floor(Math.random() * maxRandomNumber) });
+        const maxRandomNumber = (Math.pow(2, 32) / 2) - 1;
+        this.setState({ gameId: Math.floor(Math.random() * maxRandomNumber) });
 
-        this.setState({ orderID: 0 });
+        this.setState({ orderId: 0 });
         this.setState({ snake: snake });
-        this.setState({ snakeDirection: SNAKEDIRECTION.UP });
+        this.setState({ snakeDirection: SnakeDirection.UP });
         this.setState({ cells: cells });
         this.setState({ snakeDead: false });
     }
@@ -334,28 +338,28 @@ class SnakeEnvironment extends Component {
     toggleSnakeBrain() {
         if (this.state.snakeBrainControl) {
             this.setState({ snakeBrainControl: false });
-            let button = document.getElementById("button_snakebrain");
-            button.classList.remove("buttonon");
+            let button = document.getElementById('button_snakebrain');
+            button.classList.remove('buttonon');
         }
         else {
             this.setState({ snakeBrainControl: true });
-            let button = document.getElementById("button_snakebrain");
-            button.classList.add("buttonon");
+            let button = document.getElementById('button_snakebrain');
+            button.classList.add('buttonon');
         }
     }
 
     generateItems() {
         var cells = createEnvironment();
 
-        let nApples = document.getElementById("input_apples").value;
-        let nScissors = document.getElementById("input_scissors").value;
+        let nApples = document.getElementById('input_apples').value;
+        let nScissors = document.getElementById('input_scissors').value;
 
         let i = 0;
         while (i < nApples) {
             let randomCell = Math.floor(
-                Math.random() * environmentColumns * environmentRows);
+                Math.random() * ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS);
             if (this.checkIfCellEmpty(randomCell)) {
-                cells[randomCell] = CELLSTATE.APPLE;
+                cells[randomCell] = CellState.APPLE;
                 this.setState({ cells: cells });
                 ++i;
             }
@@ -363,9 +367,9 @@ class SnakeEnvironment extends Component {
         i = 0;
         while (i < nScissors) {
             let randomCell = Math.floor(
-                Math.random() * environmentColumns * environmentRows);
+                Math.random() * ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS);
             if (this.checkIfCellEmpty(randomCell)) {
-                cells[randomCell] = CELLSTATE.SCISSORS;
+                cells[randomCell] = CellState.SCISSORS;
                 this.setState({ cells: cells });
                 ++i;
             }
@@ -373,7 +377,7 @@ class SnakeEnvironment extends Component {
     }
 
     checkIfCellEmpty(i) {
-        if (this.state.cells[i] === CELLSTATE.EMPTY &&
+        if (this.state.cells[i] === CellState.EMPTY &&
             !this.state.snake.find(element => element === i)) {
                 return true;
         }
@@ -383,8 +387,8 @@ class SnakeEnvironment extends Component {
     }
 
     checkIfCellHasItem(i) {
-        if (this.state.cells[i] === CELLSTATE.APPLE ||
-            this.state.cells[i] === CELLSTATE.SCISSORS) {
+        if (this.state.cells[i] === CellState.APPLE ||
+            this.state.cells[i] === CellState.SCISSORS) {
             return true;
         }
         else {
@@ -393,34 +397,34 @@ class SnakeEnvironment extends Component {
     }
 
     selectItem(selectedItem) {
-        const buttonApples = document.getElementById("button_selectapples");
-        const buttonScissors = document.getElementById("button_selectscissors");
-        const buttonEraser = document.getElementById("button_selecteraser");
+        const buttonApples = document.getElementById('button_selectapples');
+        const buttonScissors = document.getElementById('button_selectscissors');
+        const buttonEraser = document.getElementById('button_selecteraser');
 
-        if (selectedItem === CELLSTATE.APPLE) {
-            this.setState({ selectedItem: CELLSTATE.APPLE });
-            buttonApples.classList.add("buttonon");
-            buttonScissors.classList.remove("buttonon");
-            buttonEraser.classList.remove("buttonon");
+        if (selectedItem === CellState.APPLE) {
+            this.setState({ selectedItem: CellState.APPLE });
+            buttonApples.classList.add('buttonon');
+            buttonScissors.classList.remove('buttonon');
+            buttonEraser.classList.remove('buttonon');
         }
-        else if (selectedItem === CELLSTATE.SCISSORS) {
-            this.setState({ selectedItem: CELLSTATE.SCISSORS })
-            buttonApples.classList.remove("buttonon");
-            buttonScissors.classList.add("buttonon");
-            buttonEraser.classList.remove("buttonon");
+        else if (selectedItem === CellState.SCISSORS) {
+            this.setState({ selectedItem: CellState.SCISSORS })
+            buttonApples.classList.remove('buttonon');
+            buttonScissors.classList.add('buttonon');
+            buttonEraser.classList.remove('buttonon');
         }
-        else if (selectedItem === CELLSTATE.EMPTY) {
-            this.setState({ selectedItem: CELLSTATE.EMPTY })
-            buttonApples.classList.remove("buttonon");
-            buttonScissors.classList.remove("buttonon");
-            buttonEraser.classList.add("buttonon");
+        else if (selectedItem === CellState.EMPTY) {
+            this.setState({ selectedItem: CellState.EMPTY })
+            buttonApples.classList.remove('buttonon');
+            buttonScissors.classList.remove('buttonon');
+            buttonEraser.classList.add('buttonon');
         }
     }
 
     // Lets user to place previously selected items on the grid
     // Or use eraser to remove items
     handleMouseOver(i) {
-        if (mouseDown) {
+        if (this.mouseDown) {
             if (this.checkIfCellEmpty(i) || this.checkIfCellHasItem(i)) {
                     const cells = this.state.cells;
                     cells[i] = this.state.selectedItem;
@@ -438,74 +442,74 @@ class SnakeEnvironment extends Component {
         return (
             <html>
             <head>
-                <link rel="stylesheet" href="SnakeEnvironment.css"/>
+                <link rel='stylesheet' href='SnakeEnvironment.css'/>
             </head>
             <body>
                     <h1>Feed the Snake</h1>
                     <p>Score: {this.state.currentScore}</p>
-                    <div className="EnvironmentGrid">
+                    <div className='EnvironmentGrid'>
                         <EnvironmentGrid
                             state={this.state}
                             onMouseOver={(i) => this.handleMouseOver(i)}
                         />
                     </div>
                     <button
-                        id="button_selectapples"
-                        className="button"
-                        onClick={() => this.selectItem(CELLSTATE.APPLE)}>
+                        id='button_selectapples'
+                        className='button'
+                        onClick={() => this.selectItem(CellState.APPLE)}>
                         Apple
                     </button>
                     <button
-                        id="button_selectscissors"
-                        className="button"
-                        onClick={() => this.selectItem(CELLSTATE.SCISSORS)}>
+                        id='button_selectscissors'
+                        className='button'
+                        onClick={() => this.selectItem(CellState.SCISSORS)}>
                         Scissors
                     </button>
                     <button
-                        id="button_selecteraser"
-                        className="button"
-                        onClick={() => this.selectItem(CELLSTATE.EMPTY)}>
+                        id='button_selecteraser'
+                        className='button'
+                        onClick={() => this.selectItem(CellState.EMPTY)}>
                         Eraser
                     </button>
                     <button
-                        id="button_reset"
-                        className="button"
+                        id='button_reset'
+                        className='button'
                         onClick={() => this.resetEnvironment()}>
                         Reset
                     </button>
                     <button
-                        id="button_start"
-                        className="button"
+                        id='button_start'
+                        className='button'
                         onClick={() => this.startEnvironment()}>
                         Start
                     </button>
                     <button
-                        id="button_snakebrain"
-                        className="button"
+                        id='button_snakebrain'
+                        className='button'
                         onClick={() => this.toggleSnakeBrain()}>
                         Snake Brain
                     </button>
 
                     <p>Item generator</p>
-                    <label for="appleinput">Apples</label>
+                    <label for='appleinput'>Apples</label>
                     <input
-                        id="input_apples"
-                        type="range"
-                        name="appleinput"
-                        min="0"
-                        max={Math.floor((environmentColumns * environmentRows) / 3)}>
+                        id='input_apples'
+                        type='range'
+                        name='appleinput'
+                        min='0'
+                        max={Math.floor((ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS) / 3)}>
                     </input>
-                    <label for="scissorinput">Scissors</label>
+                    <label for='scissorinput'>Scissors</label>
                     <input
-                        id="input_scissors"
-                        type="range"
-                        name="scissorinput"
-                        min="0"
-                        max={Math.floor((environmentColumns * environmentRows) / 3)}>
+                        id='input_scissors'
+                        type='range'
+                        name='scissorinput'
+                        min='0'
+                        max={Math.floor((ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS) / 3)}>
                     </input>
                     <button
-                        id="button_generate"
-                        className="button_generate"
+                        id='button_generate'
+                        className='button_generate'
                         onClick={() => this.generateItems()}>
                         Generate
                     </button>
@@ -518,30 +522,30 @@ class SnakeEnvironment extends Component {
 }
 
 const getGridCenter = () => {
-    const middleRow = Math.floor((environmentRows - 1) / 2);
+    const middleRow = Math.floor((ENVIRONMENT_ROWS - 1) / 2);
     return (
-        Math.floor(middleRow * environmentColumns + (environmentColumns - 1) / 2)
+        Math.floor(middleRow * ENVIRONMENT_COLUMNS + (ENVIRONMENT_COLUMNS - 1) / 2)
     );
 }
 
 const createSnakeOfLength = (length) => {
     let snake = [];
     for (let i = 0; i < length; ++i) {
-        snake.push(getGridCenter() + i * environmentColumns);
+        snake.push(getGridCenter() + i * ENVIRONMENT_COLUMNS);
     }
     return snake;
 }
 
 // Creates an empty environment grid surrounded by walls
 const createEnvironment = () => {
-    const GridSize = environmentRows * environmentColumns;
+    const GridSize = ENVIRONMENT_ROWS * ENVIRONMENT_COLUMNS;
     const cells =
-        Array(GridSize).fill(CELLSTATE.EMPTY);
+        Array(GridSize).fill(CellState.EMPTY);
     for (let i = 0; i < GridSize; ++i) {
-        if (i < environmentColumns || i > (GridSize - environmentColumns - 1)
-            || !(i % environmentColumns) || !((i + 1) % environmentColumns)
+        if (i < ENVIRONMENT_COLUMNS || i > (GridSize - ENVIRONMENT_COLUMNS - 1)
+            || !(i % ENVIRONMENT_COLUMNS) || !((i + 1) % ENVIRONMENT_COLUMNS)
         ){
-                cells[i] = CELLSTATE.WALL;
+                cells[i] = CellState.WALL;
         }
     }
     return cells;
