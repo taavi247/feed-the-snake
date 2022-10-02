@@ -50,7 +50,11 @@ class EnvironmentGrid extends Component {
 
             // Adding a line break here to change rows in flexbox
             if (!(index % ENVIRONMENT_COLUMNS)) {
-                cellrow.push(<div className='linebreak'></div>);
+                cellrow.push(
+                    <div
+                        key={'l' + index}
+                        className='linebreak'>
+                    </div>);
             }
 
             const snakeheadLocation = this.props.state.snake[0];
@@ -71,7 +75,7 @@ class EnvironmentGrid extends Component {
         });
 
         return (
-            <div className='container'>
+            <div key='grid' className='container'>
                 { Grid }
             </div>
         );
@@ -93,6 +97,7 @@ class SnakeEnvironment extends Component {
             snakeBrainControl: false,
             generated: false,
             currentScore: 0,
+            isStarted: false,
         };
         this.handleKeyPress = this.handleKeyPress.bind(this);
         this.timerId = null;
@@ -310,6 +315,8 @@ class SnakeEnvironment extends Component {
             this.timerId = setInterval(() =>
                 { this.environmentTick(); }, this.state.tickInterval);
         }
+
+        this.setState({ isStarted: true });
     }
 
     resetEnvironment() {
@@ -333,6 +340,7 @@ class SnakeEnvironment extends Component {
         this.setState({ snakeDirection: SnakeDirection.UP });
         this.setState({ cells: cells });
         this.setState({ snakeDead: false });
+        this.setState({ isStarted: false });
     }
 
     toggleSnakeBrain() {
@@ -349,6 +357,10 @@ class SnakeEnvironment extends Component {
     }
 
     generateItems() {
+        if (this.state.isStarted) {
+            return;
+        }
+
         var cells = createEnvironment();
 
         let nApples = document.getElementById('input_apples').value;
@@ -424,6 +436,10 @@ class SnakeEnvironment extends Component {
     // Lets user to place previously selected items on the grid
     // Or use eraser to remove items
     handleMouseOver(i) {
+        if (this.state.isStarted) {
+            return;
+        }
+
         if (this.mouseDown) {
             if (this.checkIfCellEmpty(i) || this.checkIfCellHasItem(i)) {
                     const cells = this.state.cells;
@@ -449,6 +465,7 @@ class SnakeEnvironment extends Component {
                     <p>Score: {this.state.currentScore}</p>
                     <div className='EnvironmentGrid'>
                         <EnvironmentGrid
+                            key='environment_grid'
                             state={this.state}
                             onMouseOver={(i) => this.handleMouseOver(i)}
                         />
@@ -491,7 +508,7 @@ class SnakeEnvironment extends Component {
                     </button>
 
                     <p>Item generator</p>
-                    <label for='appleinput'>Apples</label>
+                    <label for='input_apples'>Apples</label>
                     <input
                         id='input_apples'
                         type='range'
@@ -499,7 +516,7 @@ class SnakeEnvironment extends Component {
                         min='0'
                         max={Math.floor((ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS) / 3)}>
                     </input>
-                    <label for='scissorinput'>Scissors</label>
+                    <label for='input_scissors'>Scissors</label>
                     <input
                         id='input_scissors'
                         type='range'
