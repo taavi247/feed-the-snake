@@ -7,8 +7,8 @@ const API_URL = 'http://127.0.0.1:8000/api/movesnake';
 
 const CellState = {
     EMPTY: 'empty',
-    STATICWALL: 'wall',
-    USERWALL: 'wall',
+    STATICWALL: 's_wall',
+    USERWALL: 'u_wall',
     APPLE: 'apple',
     SCISSORS: 'scissors',
     SNAKEHEAD: 'snakehead',
@@ -281,6 +281,7 @@ class SnakeEnvironment extends Component {
         // or on too many scissors
         if (snakebody.find(element => element === snakeHeadLocation)
             || this.state.cells[snakeHeadLocation] === CellState.STATICWALL
+            || this.state.cells[snakeHeadLocation] === CellState.USERWALL
             || snakebody.length < 1
         ) {
             this.setState({ isSnakeDead: true });
@@ -404,7 +405,7 @@ class SnakeEnvironment extends Component {
         while (i < nApples) {
             let randomCell = Math.floor(
                 Math.random() * ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS);
-            if (this.checkIfCellEmpty(randomCell)) {
+            if (this.state.cells[randomCell] === CellState.EMPTY) {
                 cells[randomCell] = CellState.APPLE;
                 this.setState({ cells: cells });
                 ++i;
@@ -414,7 +415,7 @@ class SnakeEnvironment extends Component {
         while (i < nScissors) {
             let randomCell = Math.floor(
                 Math.random() * ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS);
-            if (this.checkIfCellEmpty(randomCell)) {
+            if (this.state.cells[randomCell] === CellState.EMPTY) {
                 cells[randomCell] = CellState.SCISSORS;
                 this.setState({ cells: cells });
                 ++i;
@@ -422,47 +423,52 @@ class SnakeEnvironment extends Component {
         }
     }
 
-    checkIfCellEmpty(i) {
-        if (this.state.cells[i] === CellState.EMPTY &&
-            !this.state.snake.find(element => element === i)) {
-                return true;
-        }
-        else {
-            return false;
-        }
+    generateWalls() {
+
     }
 
-    checkIfCellHasItem(i) {
-        if (this.state.cells[i] === CellState.APPLE ||
-            this.state.cells[i] === CellState.SCISSORS) {
-            return true;
+    checkIfCellModifiable(i) {
+        if (this.state.cells[i] === CellState.STATICWALL ||
+            this.state.snake.find(element => element === i)) {
+               return false;
         }
         else {
-            return false;
+            return true;
         }
     }
 
     selectItem(selectedItem) {
         const buttonApples = document.getElementById('button_selectapples');
         const buttonScissors = document.getElementById('button_selectscissors');
+        const buttonWalls = document.getElementById('button_selectwalls');
         const buttonEraser = document.getElementById('button_selecteraser');
 
         if (selectedItem === CellState.APPLE) {
             this.setState({ selectedItem: CellState.APPLE });
             buttonApples.classList.add('buttonon');
             buttonScissors.classList.remove('buttonon');
+            buttonWalls.classList.remove('buttonon');
             buttonEraser.classList.remove('buttonon');
         }
         else if (selectedItem === CellState.SCISSORS) {
             this.setState({ selectedItem: CellState.SCISSORS })
             buttonApples.classList.remove('buttonon');
             buttonScissors.classList.add('buttonon');
+            buttonWalls.classList.remove('buttonon');
+            buttonEraser.classList.remove('buttonon');
+        }
+        else if (selectedItem === CellState.USERWALL) {
+            this.setState({ selectedItem: CellState.USERWALL })
+            buttonApples.classList.remove('buttonon');
+            buttonScissors.classList.remove('buttonon');
+            buttonWalls.classList.add('buttonon');
             buttonEraser.classList.remove('buttonon');
         }
         else if (selectedItem === CellState.EMPTY) {
             this.setState({ selectedItem: CellState.EMPTY })
             buttonApples.classList.remove('buttonon');
             buttonScissors.classList.remove('buttonon');
+            buttonWalls.classList.remove('buttonon');
             buttonEraser.classList.add('buttonon');
         }
     }
@@ -475,7 +481,7 @@ class SnakeEnvironment extends Component {
         }
 
         if (this.mouseDown) {
-            if (this.checkIfCellEmpty(i) || this.checkIfCellHasItem(i)) {
+            if (this.checkIfCellModifiable(i)) {
                     const cells = this.state.cells;
                     cells[i] = this.state.selectedItem;
                     this.setState({ cells: cells });
@@ -517,16 +523,16 @@ class SnakeEnvironment extends Component {
                         Scissors
                     </button>
                     <button
+                        id='button_selectwalls'
+                        className='button'
+                        onClick={() => this.selectItem(CellState.USERWALL)}>
+                        Wall
+                    </button>
+                    <button
                         id='button_selecteraser'
                         className='button'
                         onClick={() => this.selectItem(CellState.EMPTY)}>
                         Eraser
-                    </button>
-                    <button
-                        id='button_snakebrain'
-                        className='button'
-                        onClick={() => this.toggleSnakeBrain()}>
-                        Snake Brain
                     </button>
                     <br/>
                     <button
@@ -550,6 +556,13 @@ class SnakeEnvironment extends Component {
                         className='button'
                         onClick={() => this.toggleAutoplay()}>
                         Autoplay
+                    </button>
+                    <br/>
+                    <button
+                        id='button_snakebrain'
+                        className='button'
+                        onClick={() => this.toggleSnakeBrain()}>
+                        Snake Brain
                     </button>
                     <p><b>Item generator</b></p>
                     <label for='input_apples'>Apples</label>

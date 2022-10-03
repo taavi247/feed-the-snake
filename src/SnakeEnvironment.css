@@ -54,7 +54,11 @@ div {
     background-color: black;
 }
 
-.wall {
+.s_wall {
+    background-color: slategray;
+}
+
+.u_wall {
     background-color: slategray;
 }
 
