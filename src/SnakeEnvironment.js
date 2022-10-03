@@ -87,7 +87,8 @@ class SnakeEnvironment extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            cells: createEnvironment(),
+            cells: Array(
+                ENVIRONMENT_ROWS * ENVIRONMENT_COLUMNS).fill(CellState.EMPTY),
             selectedItem: CellState.APPLE,
             snakeDirection: SnakeDirection.UP,
             snake: [],
@@ -132,7 +133,6 @@ class SnakeEnvironment extends Component {
         if (this.state.isSnakeDead) {
             if (this.state.isAutoplay) {
                 this.resetEnvironment();
-                this.generateItems();
                 this.setState({ isStarted: true });
             }
             else {
@@ -344,7 +344,11 @@ class SnakeEnvironment extends Component {
 
         const snake = createSnakeOfLength(6);
 
-        const cells = createEnvironment();
+        let cells = this.state.cells;
+        cells = this.createEnvironment();
+
+        this.generateWalls();
+        this.generateItems();
 
         // Django database uses only positive (16-bit) integers
         const maxRandomNumber = (Math.pow(2, 32) / 2) - 1;
@@ -395,8 +399,52 @@ class SnakeEnvironment extends Component {
         }
     }
 
+    // Creates an empty environment grid surrounded by walls
+    createEnvironment = () => {
+        let cells = this.state.cells;
+        const GridSize = ENVIRONMENT_ROWS * ENVIRONMENT_COLUMNS;
+        for (let i = 0; i < GridSize; ++i) {
+            if (i < ENVIRONMENT_COLUMNS || i > (GridSize - ENVIRONMENT_COLUMNS - 1)
+                || !(i % ENVIRONMENT_COLUMNS) || !((i + 1) % ENVIRONMENT_COLUMNS)
+            ) {
+                cells[i] = CellState.STATICWALL;
+            }
+            else {
+                cells[i] = CellState.EMPTY;
+            }
+        }
+        return cells;
+    }
+
+    generateWalls() {
+        let cells = this.state.cells;
+
+        let wSize = document.getElementById('input_wall_size').value;
+        let wAmount = document.getElementById('input_wall_amount').value;
+
+        let i = 0;
+        while (i < wAmount) {
+            let j = 0;
+            let randomCell = Math.floor(
+                Math.random() * ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS);
+
+            while (j <= wSize) {
+                if (this.checkIfCellModifiable(randomCell)) {
+                    cells[randomCell] = CellState.USERWALL;
+                    randomCell = getRandomDirectionAsIndex(randomCell);
+                    ++i;
+                    ++j;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        this.setState({ cells: cells });
+    }
+
     generateItems() {
-        var cells = createEnvironment();
+        let cells = this.state.cells;
 
         let nApples = document.getElementById('input_apples').value;
         let nScissors = document.getElementById('input_scissors').value;
@@ -407,7 +455,6 @@ class SnakeEnvironment extends Component {
                 Math.random() * ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS);
             if (this.state.cells[randomCell] === CellState.EMPTY) {
                 cells[randomCell] = CellState.APPLE;
-                this.setState({ cells: cells });
                 ++i;
             }
         }
@@ -417,14 +464,11 @@ class SnakeEnvironment extends Component {
                 Math.random() * ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS);
             if (this.state.cells[randomCell] === CellState.EMPTY) {
                 cells[randomCell] = CellState.SCISSORS;
-                this.setState({ cells: cells });
+                
                 ++i;
             }
         }
-    }
-
-    generateWalls() {
-
+        this.setState({ cells: cells });
     }
 
     checkIfCellModifiable(i) {
@@ -543,7 +587,7 @@ class SnakeEnvironment extends Component {
                                 this.resetEnvironment()
                             }
                         }}>
-                        Reset
+                        Reset / Generate
                     </button>
                     <button
                         id='button_start'
@@ -564,6 +608,23 @@ class SnakeEnvironment extends Component {
                         onClick={() => this.toggleSnakeBrain()}>
                         Snake Brain
                     </button>
+                    <p><b>Wall generator</b></p>
+                    <label for='input_wall_size'>Size</label>
+                    <input
+                        id='input_wall_size'
+                        type='range'
+                        name='wall_size_input'
+                        min='0'
+                        max='20'>
+                    </input>
+                    <label for='input_wall_amount'>Amount</label>
+                    <input
+                        id='input_wall_amount'
+                        type='range'
+                        name='wall_amount_input'
+                        min='0'
+                        max='200'>
+                    </input>
                     <p><b>Item generator</b></p>
                     <label for='input_apples'>Apples</label>
                     <input
@@ -581,16 +642,6 @@ class SnakeEnvironment extends Component {
                         min='0'
                         max={Math.floor((ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS) / 3)}>
                     </input>
-                    <button
-                        id='button_generate'
-                        className='button_generate'
-                        onClick={() => {
-                            if (!this.state.isStarted) {
-                                this.generateItems()
-                            }
-                        }}>
-                        Generate
-                    </button>
                     <p><b>Snake speed</b></p>
                     <label for='input_snakespeed'>Speed</label>
                     <input
@@ -622,19 +673,28 @@ const createSnakeOfLength = (length) => {
     return snake;
 }
 
-// Creates an empty environment grid surrounded by walls
-const createEnvironment = () => {
-    const GridSize = ENVIRONMENT_ROWS * ENVIRONMENT_COLUMNS;
-    const cells =
-        Array(GridSize).fill(CellState.EMPTY);
-    for (let i = 0; i < GridSize; ++i) {
-        if (i < ENVIRONMENT_COLUMNS || i > (GridSize - ENVIRONMENT_COLUMNS - 1)
-            || !(i % ENVIRONMENT_COLUMNS) || !((i + 1) % ENVIRONMENT_COLUMNS)
-        ){
-                cells[i] = CellState.STATICWALL;
-        }
+const getRandomDirectionAsIndex = (currentIndex) => {
+    const randomIndex = Math.floor(Math.random() * 4) + 1;
+    let newIndex;
+
+    switch (randomIndex) {
+        case 1:
+            newIndex = currentIndex - ENVIRONMENT_COLUMNS;
+            break;
+        case 2:
+            newIndex = currentIndex + ENVIRONMENT_COLUMNS;
+            break;
+        case 3:
+            newIndex = currentIndex - 1;
+            break;
+        case 4:
+            newIndex = currentIndex + 1;
+            break;
+        default:
+            break;
     }
-    return cells;
+
+    return newIndex;
 }
 
 export default SnakeEnvironment;
