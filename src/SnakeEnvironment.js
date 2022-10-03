@@ -7,7 +7,8 @@ const API_URL = 'http://127.0.0.1:8000/api/movesnake';
 
 const CellState = {
     EMPTY: 'empty',
-    WALL: 'wall',
+    STATICWALL: 'wall',
+    USERWALL: 'wall',
     APPLE: 'apple',
     SCISSORS: 'scissors',
     SNAKEHEAD: 'snakehead',
@@ -90,14 +91,13 @@ class SnakeEnvironment extends Component {
             selectedItem: CellState.APPLE,
             snakeDirection: SnakeDirection.UP,
             snake: [],
-            snakeDead: false,
-            tickInterval: 200,
+            isSnakeDead: false,
             gameId: 0,
             orderId: 0,
-            snakeBrainControl: false,
-            generated: false,
+            isSnakeBrainControl: false,
             currentScore: 0,
             isStarted: false,
+            isAutoplay: false,
         };
         this.handleKeyPress = this.handleKeyPress.bind(this);
         this.timerId = null;
@@ -109,6 +109,9 @@ class SnakeEnvironment extends Component {
 
         document.body.onmousedown = () => (this.mouseDown = true);
         document.body.onmouseup = () => (this.mouseDown = false);
+        document.getElementById('input_snakespeed').value = -200.0;
+
+        document.body.addEventListener('keydown', this.handleKeyPress);
     }
 
     componentWillUnmount() {
@@ -126,8 +129,15 @@ class SnakeEnvironment extends Component {
         this.getSnakeControlFromServer();
 
         // Stop here if previous tick killed the snake
-        if (this.state.snakeDead) {
-            clearInterval(this.timerId);
+        if (this.state.isSnakeDead) {
+            if (this.state.isAutoplay) {
+                this.resetEnvironment();
+                this.generateItems();
+                this.setState({ isStarted: true });
+            }
+            else {
+                clearInterval(this.timerId);
+            }
             return;
         }
 
@@ -141,7 +151,7 @@ class SnakeEnvironment extends Component {
     }
 
     getSnakeControlFromServer() {
-        // Creates a JSON including unique game Id, turn and
+        // Creates a JSON including unique gcame Id, turn and
         // location of snake and items
         const json = this.createSnakeItemJSON(
             this.state.snake,
@@ -165,7 +175,7 @@ class SnakeEnvironment extends Component {
                 }
             })
             .then(result => {
-                if (this.state.snakeBrainControl) {
+                if (this.state.isSnakeBrainControl) {
                     this.setSnakeDirection(result.snakeDirection)
                 }
             })
@@ -270,10 +280,11 @@ class SnakeEnvironment extends Component {
         // The snake dies if it runs into its own body or a wall 
         // or on too many scissors
         if (snakebody.find(element => element === snakeHeadLocation)
-            || this.state.cells[snakeHeadLocation] === CellState.WALL
+            || this.state.cells[snakeHeadLocation] === CellState.STATICWALL
             || snakebody.length < 1
         ) {
-            this.setState({ snakeDead: true });
+            this.setState({ isSnakeDead: true });
+            this.setState({ isStarted: false });
         }
     }
 
@@ -309,21 +320,24 @@ class SnakeEnvironment extends Component {
     }
 
     startEnvironment() {
-        document.body.addEventListener('keydown', this.handleKeyPress);
+        if (this.state.isStarted || this.state.isSnakeDead) {
+            return;
+        }
+
+        const snakeSpeed = -1 * document.getElementById('input_snakespeed').value;
 
         if (!this.timerId) {
             this.timerId = setInterval(() =>
-                { this.environmentTick(); }, this.state.tickInterval);
+                { this.environmentTick(); }, snakeSpeed);
         }
-
         this.setState({ isStarted: true });
     }
 
     resetEnvironment() {
-        document.body.removeEventListener('keydown', this.handleKeyPress);
-
-        clearInterval(this.timerId);
-        this.timerId = null;
+        if (!this.state.isAutoplay) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+        }
 
         this.setState({ currentScore: 0 });
 
@@ -339,28 +353,48 @@ class SnakeEnvironment extends Component {
         this.setState({ snake: snake });
         this.setState({ snakeDirection: SnakeDirection.UP });
         this.setState({ cells: cells });
-        this.setState({ snakeDead: false });
-        this.setState({ isStarted: false });
+        this.setState({ isSnakeDead: false });    
     }
 
     toggleSnakeBrain() {
-        if (this.state.snakeBrainControl) {
-            this.setState({ snakeBrainControl: false });
+        if (this.state.isSnakeDead) {
+            return;
+        }
+
+        if (this.state.isSnakeBrainControl) {
+            this.setState({ isSnakeBrainControl: false });
             let button = document.getElementById('button_snakebrain');
+            button.classList.remove('buttonon');
+
+            document.body.addEventListener('keydown', this.handleKeyPress);
+        }
+        else {
+            this.setState({ isSnakeBrainControl: true });
+            let button = document.getElementById('button_snakebrain');
+            button.classList.add('buttonon');
+
+            document.body.removeEventListener('keydown', this.handleKeyPress);
+        }
+    }
+
+    toggleAutoplay() {
+        if (this.state.isSnakeDead) {
+            return;
+        }
+
+        if (this.state.isAutoplay) {
+            this.setState({ isAutoplay: false });
+            let button = document.getElementById('button_autoplay');
             button.classList.remove('buttonon');
         }
         else {
-            this.setState({ snakeBrainControl: true });
-            let button = document.getElementById('button_snakebrain');
+            this.setState({ isAutoplay: true });
+            let button = document.getElementById('button_autoplay');
             button.classList.add('buttonon');
         }
     }
 
     generateItems() {
-        if (this.state.isStarted) {
-            return;
-        }
-
         var cells = createEnvironment();
 
         let nApples = document.getElementById('input_apples').value;
@@ -451,8 +485,8 @@ class SnakeEnvironment extends Component {
 
     render() {
         let snakeDeadMessage;
-        if (this.state.snakeDead) {
-            snakeDeadMessage = <h1>Snake is dead!</h1>
+        if (this.state.isSnakeDead) {
+            snakeDeadMessage = <b style={{color: 'red'}}> Snake is dead!</b>;
         }
 
         return (
@@ -462,7 +496,7 @@ class SnakeEnvironment extends Component {
             </head>
             <body>
                     <h1>Feed the Snake</h1>
-                    <p>Score: {this.state.currentScore}</p>
+                    <p>Score: {this.state.currentScore}{snakeDeadMessage}</p>
                     <div className='EnvironmentGrid'>
                         <EnvironmentGrid
                             key='environment_grid'
@@ -489,9 +523,20 @@ class SnakeEnvironment extends Component {
                         Eraser
                     </button>
                     <button
+                        id='button_snakebrain'
+                        className='button'
+                        onClick={() => this.toggleSnakeBrain()}>
+                        Snake Brain
+                    </button>
+                    <br/>
+                    <button
                         id='button_reset'
                         className='button'
-                        onClick={() => this.resetEnvironment()}>
+                        onClick={() => {
+                            if (!this.state.isStarted) {
+                                this.resetEnvironment()
+                            }
+                        }}>
                         Reset
                     </button>
                     <button
@@ -501,13 +546,12 @@ class SnakeEnvironment extends Component {
                         Start
                     </button>
                     <button
-                        id='button_snakebrain'
+                        id='button_autoplay'
                         className='button'
-                        onClick={() => this.toggleSnakeBrain()}>
-                        Snake Brain
+                        onClick={() => this.toggleAutoplay()}>
+                        Autoplay
                     </button>
-
-                    <p>Item generator</p>
+                    <p><b>Item generator</b></p>
                     <label for='input_apples'>Apples</label>
                     <input
                         id='input_apples'
@@ -527,11 +571,23 @@ class SnakeEnvironment extends Component {
                     <button
                         id='button_generate'
                         className='button_generate'
-                        onClick={() => this.generateItems()}>
+                        onClick={() => {
+                            if (!this.state.isStarted) {
+                                this.generateItems()
+                            }
+                        }}>
                         Generate
                     </button>
-
-                    { snakeDeadMessage }
+                    <p><b>Snake speed</b></p>
+                    <label for='input_snakespeed'>Speed</label>
+                    <input
+                        id='input_snakespeed'
+                        type='range'
+                        name='speedinput'
+                        min='-200.0'
+                        max='-0.1'
+                        step='0.1'>
+                    </input>
             </body>
             </html>
         );
@@ -562,7 +618,7 @@ const createEnvironment = () => {
         if (i < ENVIRONMENT_COLUMNS || i > (GridSize - ENVIRONMENT_COLUMNS - 1)
             || !(i % ENVIRONMENT_COLUMNS) || !((i + 1) % ENVIRONMENT_COLUMNS)
         ){
-                cells[i] = CellState.WALL;
+                cells[i] = CellState.STATICWALL;
         }
     }
     return cells;
