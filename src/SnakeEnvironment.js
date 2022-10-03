@@ -199,6 +199,18 @@ class SnakeEnvironment extends Component {
             i = items.indexOf(CellState.SCISSORS, i + 1);
         }
 
+        var walls = [];
+        i = items.indexOf(CellState.STATICWALL);
+        while (i !== -1) {
+            walls.push(i);
+            i = items.indexOf(CellState.STATICWALL, i + 1);
+        }
+        i = items.indexOf(CellState.USERWALL);
+        while (i !== -1) {
+            walls.push(i);
+            i = items.indexOf(CellState.USERWALL, i + 1);
+        }
+
         var snakeHead = snake[0];
         var snakeBody = snake.slice(1);
 
@@ -209,8 +221,8 @@ class SnakeEnvironment extends Component {
         // Add data you wish to send to the backend here
         return JSON.stringify({
             gameId, orderId, snakeHead,
-            snakeBody, apples, scissors,
-            score
+            snakeBody, walls, apples,
+            scissors, score
         });
     }
 

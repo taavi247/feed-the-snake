@@ -10,8 +10,9 @@ This is a part of learning project on full stack (React, Django) and machine lea
 
 ## Features
 
-- You can design the grid by placing apples and scissors that affect the snake making it longer or shorter respectively
-- Item generator that can be used to place the items according to slider options
+- You can design the grid by placing apples, scissors and walls that affect the snake making it longer, shorter or killing it respectively
+- Item and wall generator can be used to place the items according to slider options
+- Snake speed is also adjustable with slider
 - You can control the snake with the arrow keys or alternatively controls can be received from back end
 
 ## Used packages:
