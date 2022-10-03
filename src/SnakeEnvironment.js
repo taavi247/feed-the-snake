@@ -99,6 +99,8 @@ class SnakeEnvironment extends Component {
             currentScore: 0,
             isStarted: false,
             isAutoplay: false,
+            isRandomizeWall: false,
+            isRandomizeItems: false,
         };
         this.handleKeyPress = this.handleKeyPress.bind(this);
         this.timerId = null;
@@ -359,6 +361,26 @@ class SnakeEnvironment extends Component {
         let cells = this.state.cells;
         cells = this.createEnvironment();
 
+        if (this.state.isRandomizeWall) {
+            let max = document.getElementById('input_wall_size').max;
+            let randomValue = Math.floor(Math.random() * max);
+            document.getElementById('input_wall_size').value = randomValue;
+
+            max = document.getElementById('input_wall_amount').max;
+            randomValue = Math.floor(Math.random() * max);
+            document.getElementById('input_wall_amount').value = randomValue;
+        }
+
+        if (this.state.isRandomizeItems) {
+            let max = document.getElementById('input_apples').max;
+            let randomValue = Math.floor(Math.random() * max);
+            document.getElementById('input_apples').value = randomValue;
+
+            max = document.getElementById('input_scissors').max;
+            randomValue = Math.floor(Math.random() * max);
+            document.getElementById('input_scissors').value = randomValue;
+        }
+
         this.generateWalls();
         this.generateItems();
 
@@ -407,6 +429,32 @@ class SnakeEnvironment extends Component {
         else {
             this.setState({ isAutoplay: true });
             let button = document.getElementById('button_autoplay');
+            button.classList.add('buttonon');
+        }
+    }
+
+    toggleRandomizeWall() {
+        if (this.state.isRandomizeWall) {
+            this.setState({ isRandomizeWall: false });
+            let button = document.getElementById('button_randomize_wall');
+            button.classList.remove('buttonon');
+        }
+        else {
+            this.setState({ isRandomizeWall: true });
+            let button = document.getElementById('button_randomize_wall');
+            button.classList.add('buttonon');
+        }
+    }
+
+    toggleRandomizeItems() {
+        if (this.state.isRandomizeItems) {
+            this.setState({ isRandomizeItems: false });
+            let button = document.getElementById('button_randomize_items');
+            button.classList.remove('buttonon');
+        }
+        else {
+            this.setState({ isRandomizeItems: true });
+            let button = document.getElementById('button_randomize_items');
             button.classList.add('buttonon');
         }
     }
@@ -637,6 +685,21 @@ class SnakeEnvironment extends Component {
                         min='0'
                         max='200'>
                     </input>
+                    <button
+                        id='button_zero_wall'
+                        className='button'
+                        onClick={() => {
+                            document.getElementById('input_wall_size').value = 0;
+                            document.getElementById('input_wall_amount').value = 0;
+                        }}>
+                        Zero
+                    </button>
+                    <button
+                        id='button_randomize_wall'
+                        className='button'
+                        onClick={() => this.toggleRandomizeWall()}>
+                        Randomize
+                    </button>
                     <p><b>Item generator</b></p>
                     <label for='input_apples'>Apples</label>
                     <input
@@ -654,6 +717,21 @@ class SnakeEnvironment extends Component {
                         min='0'
                         max={Math.floor((ENVIRONMENT_COLUMNS * ENVIRONMENT_ROWS) / 3)}>
                     </input>
+                    <button
+                        id='button_zero_items'
+                        className='button'
+                        onClick={() => {
+                            document.getElementById('input_apples').value = 0;
+                            document.getElementById('input_scissors').value = 0;
+                        }}>
+                        Zero
+                    </button>
+                    <button
+                        id='button_randomize_items'
+                        className='button'
+                        onClick={() => this.toggleRandomizeItems()}>
+                        Randomize
+                    </button>
                     <p><b>Snake speed</b></p>
                     <label for='input_snakespeed'>Speed</label>
                     <input
