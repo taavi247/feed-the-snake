@@ -19,15 +19,15 @@ This is a part of learning project on full stack (React, Django) and machine lea
 
 Goal for the snake is to get high score by eating apples (yellow squares) and keeping away from the scissors (red squares). User can control the snake with arrow keys, but the main purpose of the interface is to design levels and let the snake be controlled by AI.
 
-First row of buttons Apples, Scissors, Wall and Eraser are used to draw on the grid.
+First row of buttons __Apples__, __Scissors__, __Wall__ and __Eraser__ are used to draw on the grid.
 
-Everytime snake dies user have to first push Reset/Generate-button and then start to begin a new game. When Autoplay is turned on reset and start is done automatically.
+Everytime snake dies user have to first push __Reset/Generate__ and then __Start__ to begin a new game. When __Autoplay__ is turned on reset and start is done automatically.
 
-Snake Brain controls if the snake is being controlled by user or back end AI.
+__Snake Brain__ controls if the snake is being controlled by user or back end AI.
 
-There is also settings for generators that can be totally turned off by Zero or made automatically vary for each level by turning Randomize on.
+There is also settings for generators that can be totally turned off by __Zero__ or made automatically vary for each level by turning __Randomize__ on.
 
-Currently settings (speed slider, snake brain etc.) should be can be changed only between reset and start states.
+Currently settings (__Snake speed__, __Snake Brain__ etc.) should be can be changed only between reset and start states.
 
 ## Used packages:
 
