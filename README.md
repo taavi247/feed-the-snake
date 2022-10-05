@@ -15,6 +15,20 @@ This is a part of learning project on full stack (React, Django) and machine lea
 - Snake speed is also adjustable with slider
 - You can control the snake with the arrow keys or alternatively controls can be received from back end
 
+## Interface
+
+Goal for the snake is to get high score by eating apples (yellow squares) and keeping away from the scissors (red squares). User can control the snake with arrow keys, but the main purpose of the interface is to design levels and let the snake be controlled by AI.
+
+First row of buttons Apples, Scissors, Wall and Eraser are used to draw on the grid.
+
+Everytime snake dies user have to first push Reset/Generate-button and then start to begin a new game. When Autoplay is turned on reset and start is done automatically.
+
+Snake Brain controls if the snake is being controlled by user or back end AI.
+
+There is also settings for generators that can be totally turned off by Zero or made automatically vary for each level by turning Randomize on.
+
+Currently settings (speed slider, snake brain etc.) should be can be changed only between reset and start states.
+
 ## Used packages:
 
 React v18.2.0<br/>
