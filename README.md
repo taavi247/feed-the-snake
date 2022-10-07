@@ -27,7 +27,7 @@ __Snake Brain__ controls if the snake is being controlled by user or back end AI
 
 There is also settings for generators that can be totally turned off by __Zero__ or made automatically vary for each level by turning __Randomize__ on.
 
-Currently settings (__Snake speed__, __Snake Brain__ etc.) should be can be changed only between reset and start states.
+Currently settings (__Snake speed__, __Snake Brain__ etc.) should be changed only between reset and start states.
 
 ## Used packages:
 

@@ -112,7 +112,7 @@ class SnakeEnvironment extends Component {
 
         document.body.onmousedown = () => (this.mouseDown = true);
         document.body.onmouseup = () => (this.mouseDown = false);
-        document.getElementById('input_snakespeed').value = -200.0;
+        document.getElementById('input_snakespeed').value = -200;
 
         document.body.addEventListener('keydown', this.handleKeyPress);
     }
@@ -219,12 +219,13 @@ class SnakeEnvironment extends Component {
         const gameId = this.state.gameId;
         const orderId = this.state.orderId;
         const score = this.state.currentScore;
+        const isSnakeDead = this.state.isSnakeDead;
 
         // Add data you wish to send to the backend here
         return JSON.stringify({
             gameId, orderId, snakeHead,
             snakeBody, walls, apples,
-            scissors, score
+            scissors, score, isSnakeDead
         });
     }
 
@@ -263,7 +264,6 @@ class SnakeEnvironment extends Component {
             let currentScore = this.state.currentScore + 1;
             this.setState({ currentScore: currentScore });
         }
-
         // If the snake runs into a scissor remove one extra element from
         // the body array to shorten the snake
         else if (this.state.cells[snakeheadLocation] === CellState.SCISSORS) {
@@ -276,7 +276,6 @@ class SnakeEnvironment extends Component {
                 this.setState({ currentScore: currentScore });
             }
         }
-
         // Otherwise just remove one element from the body array to make 
         // the snake seem to advance normally on the grid
         else {
@@ -749,9 +748,9 @@ class SnakeEnvironment extends Component {
                         id='input_snakespeed'
                         type='range'
                         name='speedinput'
-                        min='-200.0'
-                        max='-0.1'
-                        step='0.1'>
+                        min='-200'
+                        max='-1'
+                        step='1'>
                     </input>
             </body>
             </html>
