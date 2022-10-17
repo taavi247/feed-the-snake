@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
-const ENVIRONMENT_ROWS = 30;
-const ENVIRONMENT_COLUMNS = 30;
+const ENVIRONMENT_ROWS = 20;
+const ENVIRONMENT_COLUMNS = 20;
 
 const API_URL = 'http://127.0.0.1:8000/api/movesnake';
 
@@ -93,6 +93,7 @@ class SnakeEnvironment extends Component {
             snakeDirection: SnakeDirection.UP,
             snake: [],
             isSnakeDead: false,
+            isSnakeFed: false,
             gameId: 0,
             orderId: 0,
             isSnakeBrainControl: false,
@@ -132,7 +133,7 @@ class SnakeEnvironment extends Component {
         this.getSnakeControlFromServer();
 
         // Stop here if previous tick killed the snake
-        if (this.state.isSnakeDead) {
+        if (this.state.isSnakeDead || this.state.isSnakeFed) {
             if (this.state.isAutoplay) {
                 this.resetEnvironment();
                 this.setState({ isStarted: true });
@@ -147,6 +148,7 @@ class SnakeEnvironment extends Component {
         this.moveSnake();
 
         this.checkIfSnakeDead();
+        this.checkIfSnakeFed();
 
         const newOrderId = this.state.orderId + 1;
         this.setState({ orderId: newOrderId });
@@ -166,24 +168,12 @@ class SnakeEnvironment extends Component {
             headers: { 'Content-Type': 'application/json' },
             body: json
         };
-
-        fetch(API_URL, options)
-            .then(response => {
-                if (response.headers.get('content-type') === 'application/json') {
-                    return response.json();
-                }
-                else {
-                    console.log('Response was not in JSON format');
-                }
-            })
-            .then(result => {
-                if (this.state.isSnakeBrainControl) {
-                    this.setSnakeDirection(result.snakeDirection)
-                }
-            })
-            .catch(error => {
-                console.error('Fetch API error: ', error);
-            });
+        
+        fetchControlJSON(options).then(control_json => {
+            if (this.state.isSnakeBrainControl) {
+                this.setSnakeDirection(control_json.snakeDirection);
+            }
+        });
     }
 
     createSnakeItemJSON(snake, items) {
@@ -220,12 +210,14 @@ class SnakeEnvironment extends Component {
         const orderId = this.state.orderId;
         const score = this.state.currentScore;
         const isSnakeDead = this.state.isSnakeDead;
+        const isSnakeFed = this.state.isSnakeFed;
 
         // Add data you wish to send to the backend here
         return JSON.stringify({
             gameId, orderId, snakeHead,
             snakeBody, walls, apples,
-            scissors, score, isSnakeDead
+            scissors, score, isSnakeDead,
+            isSnakeFed
         });
     }
 
@@ -298,6 +290,13 @@ class SnakeEnvironment extends Component {
             || snakebody.length < 1
         ) {
             this.setState({ isSnakeDead: true });
+            this.setState({ isStarted: false });
+        }
+    }
+
+    checkIfSnakeFed() {
+        if (!this.state.cells.find(item => item === CellState.APPLE)) {
+            this.setState({ isSnakeFed: true });
             this.setState({ isStarted: false });
         }
     }
@@ -394,7 +393,8 @@ class SnakeEnvironment extends Component {
         this.setState({ orderId: 0 });
         this.setState({ snakeDirection: SnakeDirection.UP });
         this.setState({ cells: cells });
-        this.setState({ isSnakeDead: false });    
+        this.setState({ isSnakeDead: false });
+        this.setState({ isSnakeFed: false });
     }
 
     toggleSnakeBrain() {
@@ -748,8 +748,8 @@ class SnakeEnvironment extends Component {
                         id='input_snakespeed'
                         type='range'
                         name='speedinput'
-                        min='-200'
-                        max='-1'
+                        min='-300'
+                        max='-50'
                         step='1'>
                     </input>
             </body>
@@ -787,6 +787,12 @@ const getRandomDirectionAsIndex = (currentIndex) => {
     }
 
     return newIndex;
+}
+
+async function fetchControlJSON(options) {
+    const response = await fetch(API_URL, options);
+    const json = await response.json();
+    return json;
 }
 
 export default SnakeEnvironment;
