@@ -17,6 +17,10 @@ This is a part of learning project on full stack (React, Django) and machine lea
 
 ## Interface
 
+<img
+    src='./snake_interface.png'
+    style='max-width: 300px'>
+
 Goal for the snake is to get high score by eating apples (yellow squares) and keeping away from the scissors (red squares). User can control the snake with arrow keys, but the main purpose of the interface is to design levels and let the snake be controlled by AI.
 
 First row of buttons __Apples__, __Scissors__, __Wall__ and __Eraser__ are used to draw on the grid.
