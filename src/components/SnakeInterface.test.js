@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
-import SnakeEnvironment from './SnakeEnvironment';
+import SnakeInterface from './SnakeInterface';
 
 test('renders learn react link', () => {
-  render(<SnakeEnvironment />);
+  render(<SnakeInterface />);
   const linkElement = screen.getByText(/learn react/i);
   expect(linkElement).toBeInTheDocument();
 });

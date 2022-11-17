@@ -1,14 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import SnakeEnvironment from './SnakeEnvironment';
-import './SnakeEnvironment.css'
+import SnakeInterface from './components/SnakeInterface';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-        <SnakeEnvironment />
+        <SnakeInterface />
   </React.StrictMode>
 );
 

@@ -1,0 +1,44 @@
+.grid {
+    background-color: white;
+    display: block;
+}
+
+.cell {
+    display: inline;
+    background-color: black;
+    border: 1px solid white;
+    padding-right: 1.2rem;
+    padding-bottom: 0vw;
+}
+
+.linebreak {
+    display: block;
+}
+
+.empty {
+    background-color: black;
+}
+
+.s_wall {
+    background-color: slategray;
+}
+
+.u_wall {
+    background-color: slategray;
+}
+
+.apple {
+    background-color: lightgoldenrodyellow;
+}
+
+.scissors {
+    background-color: darkred;
+}
+
+.snakehead {
+    background-color: greenyellow;
+}
+
+.snakebody {
+    background-color: green;
+}
