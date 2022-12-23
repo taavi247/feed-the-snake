@@ -4,7 +4,7 @@
 
 A classic snake game with placeable items. The project was bootstrapped with
 Create React App. This is the front end part of larger project where snake controls
-come from the machine learning algorithm running on Django (https://github.com/taavi247/snake-brain).
+come from the machine learning algorithm running on Django (https://github.com/taaviok/snake-brain).
 
 This is a part of learning project on full stack (React, Django) and machine learning (Pytorch). Django was chosen for back end because language compatibility with Pytorch.
 
